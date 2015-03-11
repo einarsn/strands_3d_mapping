@@ -10,52 +10,37 @@
 #include <pcl/filters/passthrough.h>
 
 using namespace semantic_map_load_utilties;
-using namespace cv;
 
 typedef pcl::PointXYZRGB PointType;
+typedef std::vector<boost::shared_ptr<pcl::PointCloud<PointType>>> dCLvector;
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> rgbVis (pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud);
 
 int main(int argc, char** argv)
 {
+    pcl::PointCloud<PointType>::Ptr cloud (new pcl::PointCloud<PointType>);
+    pcl::PointCloud<PointType>::Ptr cloud_filtered (new pcl::PointCloud<PointType>);
 
-    std::string pathToSweepXml = "/home/einar/catkin_ws/data/KTH_longterm_dataset/20140820/patrol_run_2/room_0/room.xml";
+    if (pcl::io::loadPCDFile<PointType> ("/home/einar/catkin_ws/data/KTH_longterm_dataset_processed/20140820/patrol_run_2/room_1/dynamic_clusters.pcd", *cloud) == -1) //* load the file
+    {
+      PCL_ERROR ("Couldn't read file test_pcd.pcd \n");
+      return (-1);
+    }
 
-    IntermediateCloudCompleteData<PointType> test = loadIntermediateCloudsCompleteDataFromSingleSweep<PointType>(pathToSweepXml);
-
-    boost::shared_ptr<pcl::PointCloud<PointType>> mergedCloudPtr = loadMergedCloudFromSingleSweep<PointType>(pathToSweepXml);
-    boost::shared_ptr<pcl::PointCloud<PointType>> slicedCloudPtr (new pcl::PointCloud<PointType>);
-;
-    /*
-    ----------- EXTRACT A SLICE OUT OF THE MERGED CLOUD -----------
-    */
     pcl::PassThrough<PointType> pass;
-    pass.setInputCloud (mergedCloudPtr);
+    pass.setInputCloud (cloud);
     pass.setFilterFieldName ("z");
     pass.setFilterLimits (0.2, 0.3);
-    pass.filter (*slicedCloudPtr);
+    pass.filter (*cloud_filtered);
 
-    int size = test.vIntermediateRGBImages.size();
-/*    namedWindow( "RGB", WINDOW_AUTOSIZE );// Create a window for display.*/
-    //namedWindow( "DEPTH", WINDOW_AUTOSIZE );// Create a window for display.
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
-    viewer = rgbVis(slicedCloudPtr);
+    for (size_t i = 0; i < cloud_filtered->points.size (); ++i)
+      std::cout << "    " << cloud_filtered->points[i].x
+                << " "    << cloud_filtered->points[i].y
+                << " "    << cloud_filtered->points[i].z <<  "         " << i << std::endl;
 
-/*    for(int i = 0; i < size; i++)
-    {
-        imshow( "RGB", test.vIntermediateRGBImages[i] );                   // Show our image inside it.
-        //imshow( "DEPTH", test.vIntermediateDepthImages[i] );                   // Show our image inside it.
-        //viewer = rgbVis(test.vIntermediateRoomClouds[i]);
-        waitKey(0);
-    }*/
-    while (!viewer->wasStopped () )
-    {
-      viewer->spinOnce (100);
-      boost::this_thread::sleep (boost::posix_time::microseconds (100000));
-    }
+
     return 0;
 }
-
 boost::shared_ptr<pcl::visualization::PCLVisualizer> rgbVis (pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud)
 {
   // --------------------------------------------
